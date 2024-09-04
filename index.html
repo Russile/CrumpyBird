@@ -81,15 +81,22 @@
         let gameStarted = false;
         let testMode = false;
 
-        // Load pipe image
-        const pipeImg = new Image();
-        pipeImg.src = 'pipe1.png';
+        // Load pipe images
+        const pipeImgs = [
+            'pipe1.png',
+            'pipe2.png',
+            'pipe3.png'
+        ].map(src => {
+            const img = new Image();
+            img.src = src;
+            return img;
+        });
 
         function createPipe() {
             return {
                 x: gameWidth,
                 y: Math.random() * (gameHeight - 200) + 100,
-                img: pipeImg
+                img: pipeImgs[Math.floor(Math.random() * pipeImgs.length)]
             };
         }
 
@@ -171,7 +178,7 @@
             }
 
             // Update background position
-            backgroundX -= 0.5; // Reduced from 2 to 0.5 for slower scrolling
+            backgroundX -= 0.5;
             if (backgroundX <= -backgroundImg.width) {
                 backgroundX += backgroundImg.width;
             }
@@ -183,7 +190,7 @@
 
             if (!testMode) {
                 pipes.forEach(pipe => {
-                    pipe.x -= 1.5;  // Reduced from 3 to 1.5 for slower scrolling
+                    pipe.x -= 1.5;
 
                     if (checkCollision(bird.x + bird.width / 2, bird.y + bird.height / 2, pipe.x, pipe.y - 75, pipe.y + 75)) {
                         gameOver = true;
@@ -251,11 +258,11 @@
                 ctx.save();
                 ctx.translate(pipe.x, pipe.y - 75);
                 ctx.scale(1, -1);
-                ctx.drawImage(pipeImg, 0, 0, 50, 320);
+                ctx.drawImage(pipe.img, 0, 0, 50, 320);
                 ctx.restore();
 
                 // Draw bottom pipe
-                ctx.drawImage(pipeImg, pipe.x, pipe.y + 75, 50, 320);
+                ctx.drawImage(pipe.img, pipe.x, pipe.y + 75, 50, 320);
             });
 
             // Draw score
@@ -341,7 +348,7 @@
 
         // Ensure all images are loaded before starting the game
         Promise.all([
-            pipeImg.decode(),
+            ...pipeImgs.map(img => img.decode()),
             birdImg.decode(),
             birdImgUp.decode(),
             birdImgDown.decode(),
