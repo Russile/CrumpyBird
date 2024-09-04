@@ -58,7 +58,7 @@
             height: gameWidth * 0.1,
             velocity: 0,
             gravity: 0.05,  // Further reduced gravity
-            jump: -3.0,  // Adjusted jump strength for bouncier feel
+            jump: -2.9,  // Adjusted jump strength for bouncier feel
             rotation: 0  // New property for bird rotation
         };
 
@@ -105,7 +105,7 @@
             }
 
             pipes.forEach(pipe => {
-                pipe.x -= 2;
+                pipe.x -= 1.5;  // Reduced from 2 to 1.5 for slower scrolling
 
                 if (
                     bird.x + birdImg.width > pipe.x &&
