@@ -59,20 +59,52 @@
         let bird = {
             x: gameWidth * 0.2,
             y: gameHeight * 0.5,
-            width: gameWidth * 0.1,
-            height: gameWidth * 0.1,
+            width: gameWidth * 0.1,  // Back to 100% of original size
+            height: gameWidth * 0.1, // Back to 100% of original size
+            radius: gameWidth * 0.04, // Adjusted radius (40% of width)
             velocity: 0,
-            gravity: 0.05,  // Further reduced gravity
-            jump: -2.9,  // Adjusted jump strength for bouncier feel
-            rotation: 0  // New property for bird rotation
+            gravity: 0.05,
+            jump: -2.9,
+            rotation: 0
         };
 
         let pipes = [];
         let score = 0;
-        let highScore = localStorage.getItem('highScore') || 0;
+        let highScore = parseInt(localStorage.getItem('highScore')) || 0;
         let gameOver = false;
-        let gameStarted = false;  // New variable to track if the game has started
+        let gameStarted = false;
         let testMode = false;
+
+        // Add this function to calculate distance between two points
+        function distance(x1, y1, x2, y2) {
+            return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+        }
+
+        function checkCollision(birdX, birdY, pipeX, pipeTop, pipeBottom) {
+            // Check if bird is horizontally aligned with pipe
+            if (birdX + bird.radius > pipeX && birdX - bird.radius < pipeX + 50) {
+                // Check if bird is too high or too low
+                if (birdY - bird.radius < pipeTop || birdY + bird.radius > pipeBottom) {
+                    return true;
+                }
+            }
+            
+            // Check collision with pipe corners
+            const corners = [
+                {x: pipeX, y: pipeTop},
+                {x: pipeX + 50, y: pipeTop},
+                {x: pipeX, y: pipeBottom},
+                {x: pipeX + 50, y: pipeBottom}
+            ];
+            
+            for (let corner of corners) {
+                if (distance(birdX, birdY, corner.x, corner.y) < bird.radius) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
 
         function updateHighScore() {
             if (score > highScore) {
@@ -90,11 +122,10 @@
 
         // Update game state
         function update() {
-            if (!gameStarted) return;  // Don't update if game hasn't started
-
+            if (!gameStarted) return;
             if (gameOver) return;
 
-            frameCount++;  // Increment frame count
+            frameCount++;
 
             bird.velocity += bird.gravity;
             bird.y += bird.velocity;
@@ -108,14 +139,14 @@
 
             // In Test Mode, keep the bird on screen
             if (testMode) {
-                if (bird.y < 0) bird.y = 0;
-                if (bird.y + birdImg.height > gameHeight) bird.y = gameHeight - birdImg.height;
-            } else if (bird.y + 20 > gameHeight) {
+                if (bird.y < bird.radius) bird.y = bird.radius;
+                if (bird.y + bird.radius > gameHeight) bird.y = gameHeight - bird.radius;
+            } else if (bird.y + bird.radius > gameHeight) {
                 gameOver = true;
             }
 
             // Update background position
-            backgroundX -= 0.5; // Adjust this value to change scroll speed
+            backgroundX -= 0.5;
             if (backgroundX <= -backgroundImg.width) {
                 backgroundX += backgroundImg.width;
             }
@@ -129,21 +160,18 @@
             }
 
             if (!testMode) {
-                // Collision detection (only if not in Test Mode)
                 pipes.forEach(pipe => {
                     pipe.x -= 1.5;  // Reduced from 2 to 1.5 for slower scrolling
 
-                    if (
-                        bird.x + birdImg.width > pipe.x &&
-                        bird.x < pipe.x + 50 &&
-                        (bird.y < pipe.y - 75 || bird.y + birdImg.height > pipe.y + 75)
-                    ) {
+                    if (checkCollision(bird.x + bird.width / 2, bird.y + bird.height / 2, pipe.x, pipe.y - 75, pipe.y + 75)) {
                         gameOver = true;
+                        updateHighScore(); // Update high score immediately when game ends
                     }
 
                     if (pipe.x + 50 < bird.x && !pipe.passed) {
                         score++;
                         pipe.passed = true;
+                        updateHighScore(); // Update high score on each point scored
                     }
                 });
             }
@@ -161,9 +189,9 @@
 
             // Draw bird with rotation
             ctx.save();
-            ctx.translate(bird.x + birdImg.width / 2, bird.y + birdImg.height / 2);
+            ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
             ctx.rotate(bird.rotation);
-            ctx.drawImage(birdImg, -birdImg.width / 2, -birdImg.height / 2);
+            ctx.drawImage(birdImg, -bird.width / 2, -bird.height / 2, bird.width, bird.height);
             ctx.restore();
 
             if (!gameStarted) {
@@ -269,7 +297,7 @@
 
         // Reset game state
         function resetGame() {
-            updateHighScore(); // Update high score before resetting
+            // No need to update high score here, as it's already updated when the game ends
             bird.y = 200;
             bird.velocity = 0;
             pipes = [];
