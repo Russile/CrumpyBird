@@ -27,12 +27,12 @@ let frameCount = 0;
 let bird = {
     x: gameWidth * 0.2,
     y: gameHeight * 0.5,
-    width: gameWidth * 0.1,  // Back to 100% of original size
-    height: gameWidth * 0.1, // Back to 100% of original size
-    radius: gameWidth * 0.04, // Adjusted radius (40% of width)
+    width: gameWidth * 0.1,
+    height: gameWidth * 0.1,
+    radius: gameWidth * 0.04,
     velocity: 0,
     gravity: 0.05,
-    jump: -2.9,
+    jump: -2.5,  // Reduced from -2.9 to -2.5 for a less forceful jump
     rotation: 0
 };
 
@@ -140,7 +140,7 @@ function update() {
     }
 
     // Update background position
-    backgroundX -= 0.5;
+    backgroundX -= 0.3;  // Reduced from 0.5 to 0.3 for slower scrolling
     if (backgroundX <= -backgroundImg.width) {
         backgroundX += backgroundImg.width;
     }
@@ -152,7 +152,7 @@ function update() {
 
     if (!testMode) {
         pipes.forEach(pipe => {
-            pipe.x -= 1.5;
+            pipe.x -= 1;  // Reduced from 1.5 to 1 for slower scrolling
 
             if (checkCollision(bird.x + bird.width / 2, bird.y + bird.height / 2, pipe.x, pipe.y - 75, pipe.y + 75)) {
                 gameOver = true;
@@ -280,7 +280,7 @@ function handleInput(event) {
         resetGame();
     } else {
         bird.velocity = bird.jump;
-        bird.y += bird.jump * 0.25; // Small initial boost
+        bird.y += bird.jump * 0.2; // Reduced from 0.25 to 0.2 for a slightly less forceful initial boost
         currentBirdImg = birdImgDown; // Immediately set to down image on jump
     }
 }
