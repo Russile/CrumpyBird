@@ -239,11 +239,6 @@
                 ctx.fillText('Press Space', gameWidth / 2, gameHeight / 2 + 20);
                 ctx.fillText('to Start', gameWidth / 2, gameHeight / 2 + 40);
                 
-                // Add Test Mode option
-                ctx.fillStyle = testMode ? '#4CAF50' : 'white';
-                ctx.fillText('Press T for Test Mode', gameWidth / 2, gameHeight / 2 + 80);
-                ctx.fillText(testMode ? 'Test Mode ON' : 'Test Mode OFF', gameWidth / 2, gameHeight / 2 + 100);
-                
                 // Make sure to use currentBirdImg (which is birdImgUp) for the start screen
                 ctx.drawImage(currentBirdImg, bird.x, bird.y, bird.width, bird.height);
                 
