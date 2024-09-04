@@ -2,22 +2,47 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Crumpy Bird</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        #gameContainer {
+            position: relative;
+            max-width: 600px;
+            max-height: 800px;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
         canvas {
-            border: 1px solid #000;
-            display: block;
-            margin: 0 auto;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
         }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="320" height="480"></canvas>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="320" height="480"></canvas>
+    </div>
     <script>
+        const container = document.getElementById('gameContainer');
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+
+        const gameWidth = 320;
+        const gameHeight = 480;
 
         // Load bird image
         const birdImg = new Image();
@@ -27,8 +52,10 @@
 
         // Game variables
         let bird = {
-            x: 50,
-            y: 200,
+            x: gameWidth * 0.2,
+            y: gameHeight * 0.5,
+            width: gameWidth * 0.1,
+            height: gameWidth * 0.1,
             velocity: 0,
             gravity: 0.05,  // Further reduced gravity
             jump: -3.0,  // Adjusted jump strength for bouncier feel
@@ -65,15 +92,15 @@
                 bird.rotation = -Math.PI / 6;  // Slight upward rotation when jumping
             }
 
-            if (bird.y + 20 > canvas.height) {
+            if (bird.y + 20 > gameHeight) {
                 gameOver = true;
             }
 
             // Delay pipe generation
-            if (frameCount > 100 && (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200)) {
+            if (frameCount > 100 && (pipes.length === 0 || pipes[pipes.length - 1].x < gameWidth - 200)) {
                 pipes.push({
-                    x: canvas.width,
-                    y: Math.random() * (canvas.height - 200) + 100
+                    x: gameWidth,
+                    y: Math.random() * (gameHeight - 200) + 100
                 });
             }
 
@@ -99,7 +126,7 @@
 
         // Draw game elements
         function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, gameWidth, gameHeight);
 
             // Draw bird with rotation
             ctx.save();
@@ -114,18 +141,27 @@
                 ctx.fillStyle = '#4CAF50'; // Green color
                 ctx.font = '24px "Press Start 2P"';
                 ctx.textAlign = 'center';
-                ctx.fillText('Crumpy Bird', canvas.width / 2, canvas.height / 4);
+                ctx.fillText('Crumpy Bird', gameWidth / 2, gameHeight / 4);
                 
                 // Add a shadow effect
                 ctx.fillStyle = '#45a049'; // Darker green for shadow
-                ctx.fillText('Crumpy Bird', canvas.width / 2 + 1, canvas.height / 4 + 1);
+                ctx.fillText('Crumpy Bird', gameWidth / 2 + 1, gameHeight / 4 + 1);
                 
                 // Instructions
                 ctx.fillStyle = 'black';
                 ctx.font = '12px "Press Start 2P"';
-                ctx.fillText('Press', canvas.width / 2, canvas.height / 2);
-                ctx.fillText('Spacebar', canvas.width / 2, canvas.height / 2 + 20);
-                ctx.fillText('to Start', canvas.width / 2, canvas.height / 2 + 40);
+                ctx.fillText('Press', gameWidth / 2, gameHeight / 2);
+                ctx.fillText('Spacebar', gameWidth / 2, gameHeight / 2 + 20);
+                ctx.fillText('to Start', gameWidth / 2, gameHeight / 2 + 40);
+                
+                // Add mobile-specific instructions
+                if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                    ctx.fillText('Tap to Start', gameWidth / 2, gameHeight / 2 + 60);
+                } else {
+                    ctx.fillText('Press Spacebar', gameWidth / 2, gameHeight / 2 + 60);
+                    ctx.fillText('to Start', gameWidth / 2, gameHeight / 2 + 80);
+                }
+                
                 return;  // Don't draw anything else
             }
 
@@ -133,7 +169,7 @@
             ctx.fillStyle = 'green';
             pipes.forEach(pipe => {
                 ctx.fillRect(pipe.x, 0, 50, pipe.y - 75);
-                ctx.fillRect(pipe.x, pipe.y + 75, 50, canvas.height - pipe.y - 75);
+                ctx.fillRect(pipe.x, pipe.y + 75, 50, gameHeight - pipe.y - 75);
             });
 
             // Draw score
@@ -144,36 +180,45 @@
 
             if (gameOver) {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; // Semi-transparent black
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillRect(0, 0, gameWidth, gameHeight);
 
                 ctx.fillStyle = '#FF4136'; // Bright red
                 ctx.font = '24px "Press Start 2P"';
                 ctx.textAlign = 'center';
-                ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 20);
+                ctx.fillText('Game Over', gameWidth / 2, gameHeight / 2 - 20);
 
                 ctx.fillStyle = '#FFFFFF'; // White
                 ctx.font = '12px "Press Start 2P"';
-                ctx.fillText('Press Space', canvas.width / 2, canvas.height / 2 + 10);
-                ctx.fillText('to Restart', canvas.width / 2, canvas.height / 2 + 30);
+                ctx.fillText('Press Space', gameWidth / 2, gameHeight / 2 + 10);
+                ctx.fillText('to Restart', gameWidth / 2, gameHeight / 2 + 30);
             }
         }
 
         // Handle user input
-        document.addEventListener('keydown', event => {
+        function handleInput(event) {
+            if (event.type === 'touchstart') {
+                event.preventDefault(); // Prevent default touch behavior
+            }
+            if (!gameStarted) {
+                gameStarted = true;
+                return;
+            }
+            if (gameOver) {
+                resetGame();
+            } else {
+                bird.velocity = bird.jump;
+                // Add a slight upward boost for more responsive feel
+                bird.y += bird.jump * 0.25;
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
             if (event.code === 'Space') {
-                if (!gameStarted) {
-                    gameStarted = true;
-                    return;
-                }
-                if (gameOver) {
-                    resetGame();
-                } else {
-                    bird.velocity = bird.jump;
-                    // Add a slight upward boost for more responsive feel
-                    bird.y += bird.jump * 0.25;
-                }
+                handleInput(event);
             }
         });
+
+        canvas.addEventListener('touchstart', handleInput);
 
         // Reset game state
         function resetGame() {
@@ -190,6 +235,27 @@
         birdImg.onload = function() {
             gameLoop();
         };
+
+        // Set canvas size to fit the container
+        function resizeCanvas() {
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            const scale = Math.min(containerWidth / gameWidth, containerHeight / gameHeight);
+            
+            canvas.style.width = `${gameWidth * scale}px`;
+            canvas.style.height = `${gameHeight * scale}px`;
+            
+            // Adjust for high DPI displays
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = gameWidth * scale * dpr;
+            canvas.height = gameHeight * scale * dpr;
+            
+            ctx.scale(scale * dpr, scale * dpr);
+        }
+
+        // Call resizeCanvas initially and on window resize
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
     </script>
 </body>
 </html>
