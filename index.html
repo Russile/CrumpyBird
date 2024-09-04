@@ -48,6 +48,11 @@
         const birdImg = new Image();
         birdImg.src = 'bird.png';
 
+        // Load background image
+        const backgroundImg = new Image();
+        backgroundImg.src = 'background.png';
+        let backgroundX = 0;
+
         let frameCount = 0;
 
         // Game variables
@@ -67,6 +72,7 @@
         let highScore = localStorage.getItem('highScore') || 0;
         let gameOver = false;
         let gameStarted = false;  // New variable to track if the game has started
+        let testMode = false;
 
         function updateHighScore() {
             if (score > highScore) {
@@ -100,8 +106,18 @@
                 bird.rotation = -Math.PI / 6;  // Slight upward rotation when jumping
             }
 
-            if (bird.y + 20 > gameHeight) {
+            // In Test Mode, keep the bird on screen
+            if (testMode) {
+                if (bird.y < 0) bird.y = 0;
+                if (bird.y + birdImg.height > gameHeight) bird.y = gameHeight - birdImg.height;
+            } else if (bird.y + 20 > gameHeight) {
                 gameOver = true;
+            }
+
+            // Update background position
+            backgroundX -= 0.5; // Adjust this value to change scroll speed
+            if (backgroundX <= -backgroundImg.width) {
+                backgroundX += backgroundImg.width;
             }
 
             // Delay pipe generation
@@ -112,22 +128,25 @@
                 });
             }
 
-            pipes.forEach(pipe => {
-                pipe.x -= 1.5;  // Reduced from 2 to 1.5 for slower scrolling
+            if (!testMode) {
+                // Collision detection (only if not in Test Mode)
+                pipes.forEach(pipe => {
+                    pipe.x -= 1.5;  // Reduced from 2 to 1.5 for slower scrolling
 
-                if (
-                    bird.x + birdImg.width > pipe.x &&
-                    bird.x < pipe.x + 50 &&
-                    (bird.y < pipe.y - 75 || bird.y + birdImg.height > pipe.y + 75)
-                ) {
-                    gameOver = true;
-                }
+                    if (
+                        bird.x + birdImg.width > pipe.x &&
+                        bird.x < pipe.x + 50 &&
+                        (bird.y < pipe.y - 75 || bird.y + birdImg.height > pipe.y + 75)
+                    ) {
+                        gameOver = true;
+                    }
 
-                if (pipe.x + 50 < bird.x && !pipe.passed) {
-                    score++;
-                    pipe.passed = true;
-                }
-            });
+                    if (pipe.x + 50 < bird.x && !pipe.passed) {
+                        score++;
+                        pipe.passed = true;
+                    }
+                });
+            }
 
             pipes = pipes.filter(pipe => pipe.x > -50);
         }
@@ -135,6 +154,10 @@
         // Draw game elements
         function draw() {
             ctx.clearRect(0, 0, gameWidth, gameHeight);
+
+            // Draw scrolling background with slight overlap
+            ctx.drawImage(backgroundImg, Math.floor(backgroundX), 0);
+            ctx.drawImage(backgroundImg, Math.floor(backgroundX) + backgroundImg.width - 1, 0);
 
             // Draw bird with rotation
             ctx.save();
@@ -161,6 +184,11 @@
                 ctx.fillText('Tap or', gameWidth / 2, gameHeight / 2);
                 ctx.fillText('Press Space', gameWidth / 2, gameHeight / 2 + 20);
                 ctx.fillText('to Start', gameWidth / 2, gameHeight / 2 + 40);
+                
+                // Add Test Mode option
+                ctx.fillStyle = testMode ? '#4CAF50' : 'black';
+                ctx.fillText('Press T for Test Mode', gameWidth / 2, gameHeight / 2 + 80);
+                ctx.fillText(testMode ? 'Test Mode ON' : 'Test Mode OFF', gameWidth / 2, gameHeight / 2 + 100);
                 
                 return;  // Don't draw anything else
             }
@@ -201,6 +229,14 @@
                 ctx.fillText('Tap or Press Space', gameWidth / 2, gameHeight / 2 + 70);
                 ctx.fillText('to Restart', gameWidth / 2, gameHeight / 2 + 90);
             }
+
+            // Display Test Mode indicator if active
+            if (testMode) {
+                ctx.fillStyle = '#4CAF50';
+                ctx.font = '12px "Press Start 2P"';
+                ctx.textAlign = 'left';
+                ctx.fillText('Test Mode', 10, gameHeight - 10);
+            }
         }
 
         // Handle user input
@@ -224,6 +260,8 @@
         document.addEventListener('keydown', function(event) {
             if (event.code === 'Space') {
                 handleInput(event);
+            } else if (event.code === 'KeyT' && !gameStarted) {
+                testMode = !testMode;
             }
         });
 
@@ -239,12 +277,15 @@
             gameOver = false;
             gameStarted = false;  // Reset to start screen
             frameCount = 0;  // Reset frame count
+            // Don't reset testMode here, so it persists across game restarts
         }
 
-        // Start the game loop only after the image has loaded
-        birdImg.onload = function() {
+        // Start the game loop only after all images have loaded
+        Promise.all([birdImg.decode(), backgroundImg.decode()]).then(() => {
             gameLoop();
-        };
+        }).catch(err => {
+            console.error("Error loading images:", err);
+        });
 
         // Set canvas size to fit the container
         function resizeCanvas() {
