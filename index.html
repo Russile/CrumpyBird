@@ -218,6 +218,10 @@
 
             if (!gameStarted) {
                 // Draw start screen
+                // Semi-transparent background
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(0, 0, gameWidth, gameHeight);
+                
                 // Title "Crumpy Bird"
                 ctx.fillStyle = '#4CAF50'; // Green color
                 ctx.font = '24px "Press Start 2P"';
@@ -229,14 +233,14 @@
                 ctx.fillText('Crumpy Bird', gameWidth / 2 + 1, gameHeight / 4 + 1);
                 
                 // Instructions
-                ctx.fillStyle = 'black';
+                ctx.fillStyle = 'white';
                 ctx.font = '12px "Press Start 2P"';
                 ctx.fillText('Tap or', gameWidth / 2, gameHeight / 2);
                 ctx.fillText('Press Space', gameWidth / 2, gameHeight / 2 + 20);
                 ctx.fillText('to Start', gameWidth / 2, gameHeight / 2 + 40);
                 
                 // Add Test Mode option
-                ctx.fillStyle = testMode ? '#4CAF50' : 'black';
+                ctx.fillStyle = testMode ? '#4CAF50' : 'white';
                 ctx.fillText('Press T for Test Mode', gameWidth / 2, gameHeight / 2 + 80);
                 ctx.fillText(testMode ? 'Test Mode ON' : 'Test Mode OFF', gameWidth / 2, gameHeight / 2 + 100);
                 
@@ -271,7 +275,8 @@
             ctx.fillText(`High Score: ${highScore}`, 10, 50);
 
             if (gameOver) {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; // Semi-transparent black
+                // Semi-transparent background
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                 ctx.fillRect(0, 0, gameWidth, gameHeight);
 
                 ctx.fillStyle = '#FF4136'; // Bright red
