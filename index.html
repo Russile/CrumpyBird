@@ -150,17 +150,9 @@
                 // Instructions
                 ctx.fillStyle = 'black';
                 ctx.font = '12px "Press Start 2P"';
-                ctx.fillText('Press', gameWidth / 2, gameHeight / 2);
-                ctx.fillText('Spacebar', gameWidth / 2, gameHeight / 2 + 20);
+                ctx.fillText('Tap or', gameWidth / 2, gameHeight / 2);
+                ctx.fillText('Press Space', gameWidth / 2, gameHeight / 2 + 20);
                 ctx.fillText('to Start', gameWidth / 2, gameHeight / 2 + 40);
-                
-                // Add mobile-specific instructions
-                if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-                    ctx.fillText('Tap to Start', gameWidth / 2, gameHeight / 2 + 60);
-                } else {
-                    ctx.fillText('Press Spacebar', gameWidth / 2, gameHeight / 2 + 60);
-                    ctx.fillText('to Start', gameWidth / 2, gameHeight / 2 + 80);
-                }
                 
                 return;  // Don't draw anything else
             }
@@ -189,7 +181,7 @@
 
                 ctx.fillStyle = '#FFFFFF'; // White
                 ctx.font = '12px "Press Start 2P"';
-                ctx.fillText('Press Space', gameWidth / 2, gameHeight / 2 + 10);
+                ctx.fillText('Tap or Press Space', gameWidth / 2, gameHeight / 2 + 10);
                 ctx.fillText('to Restart', gameWidth / 2, gameHeight / 2 + 30);
             }
         }
