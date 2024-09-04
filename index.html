@@ -113,14 +113,12 @@
             }
         }
 
-        // Game loop
         function gameLoop() {
             update();
             draw();
             requestAnimationFrame(gameLoop);
         }
 
-        // Update game state
         function update() {
             if (!gameStarted) return;
             if (gameOver) return;
@@ -146,7 +144,7 @@
             }
 
             // Update background position
-            backgroundX -= 0.5;
+            backgroundX -= 0.5; // Reduced from 2 to 0.5 for slower scrolling
             if (backgroundX <= -backgroundImg.width) {
                 backgroundX += backgroundImg.width;
             }
@@ -161,17 +159,17 @@
 
             if (!testMode) {
                 pipes.forEach(pipe => {
-                    pipe.x -= 1.5;  // Reduced from 2 to 1.5 for slower scrolling
+                    pipe.x -= 1.5;  // Reduced from 3 to 1.5 for slower scrolling
 
                     if (checkCollision(bird.x + bird.width / 2, bird.y + bird.height / 2, pipe.x, pipe.y - 75, pipe.y + 75)) {
                         gameOver = true;
-                        updateHighScore(); // Update high score immediately when game ends
+                        updateHighScore();
                     }
 
                     if (pipe.x + 50 < bird.x && !pipe.passed) {
                         score++;
                         pipe.passed = true;
-                        updateHighScore(); // Update high score on each point scored
+                        updateHighScore();
                     }
                 });
             }
@@ -280,8 +278,7 @@
                 resetGame();
             } else {
                 bird.velocity = bird.jump;
-                // Add a slight upward boost for more responsive feel
-                bird.y += bird.jump * 0.25;
+                bird.y += bird.jump * 0.25; // Small initial boost
             }
         }
 
