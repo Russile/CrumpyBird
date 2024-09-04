@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crumpy Bird</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        canvas {
+            border: 1px solid #000;
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="320" height="480"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Load bird image
+        const birdImg = new Image();
+        birdImg.src = 'bird.png';
+
+        let frameCount = 0;
+
+        // Game variables
+        let bird = {
+            x: 50,
+            y: 200,
+            velocity: 0,
+            gravity: 0.05,  // Further reduced gravity
+            jump: -3.0,  // Adjusted jump strength for bouncier feel
+            rotation: 0  // New property for bird rotation
+        };
+
+        let pipes = [];
+        let score = 0;
+        let gameOver = false;
+        let gameStarted = false;  // New variable to track if the game has started
+
+        // Game loop
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Update game state
+        function update() {
+            if (!gameStarted) return;  // Don't update if game hasn't started
+
+            if (gameOver) return;
+
+            frameCount++;  // Increment frame count
+
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
+
+            // Update bird rotation
+            if (bird.velocity >= bird.jump) {
+                bird.rotation = Math.min(Math.PI / 2, Math.max(-Math.PI / 2, bird.velocity * 0.18));
+            } else {
+                bird.rotation = -Math.PI / 6;  // Slight upward rotation when jumping
+            }
+
+            if (bird.y + 20 > canvas.height) {
+                gameOver = true;
+            }
+
+            // Delay pipe generation
+            if (frameCount > 100 && (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200)) {
+                pipes.push({
+                    x: canvas.width,
+                    y: Math.random() * (canvas.height - 200) + 100
+                });
+            }
+
+            pipes.forEach(pipe => {
+                pipe.x -= 2;
+
+                if (
+                    bird.x + birdImg.width > pipe.x &&
+                    bird.x < pipe.x + 50 &&
+                    (bird.y < pipe.y - 75 || bird.y + birdImg.height > pipe.y + 75)
+                ) {
+                    gameOver = true;
+                }
+
+                if (pipe.x + 50 < bird.x && !pipe.passed) {
+                    score++;
+                    pipe.passed = true;
+                }
+            });
+
+            pipes = pipes.filter(pipe => pipe.x > -50);
+        }
+
+        // Draw game elements
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw bird with rotation
+            ctx.save();
+            ctx.translate(bird.x + birdImg.width / 2, bird.y + birdImg.height / 2);
+            ctx.rotate(bird.rotation);
+            ctx.drawImage(birdImg, -birdImg.width / 2, -birdImg.height / 2);
+            ctx.restore();
+
+            if (!gameStarted) {
+                // Draw start screen
+                // Title "Crumpy Bird"
+                ctx.fillStyle = '#4CAF50'; // Green color
+                ctx.font = '24px "Press Start 2P"';
+                ctx.textAlign = 'center';
+                ctx.fillText('Crumpy Bird', canvas.width / 2, canvas.height / 4);
+                
+                // Add a shadow effect
+                ctx.fillStyle = '#45a049'; // Darker green for shadow
+                ctx.fillText('Crumpy Bird', canvas.width / 2 + 1, canvas.height / 4 + 1);
+                
+                // Instructions
+                ctx.fillStyle = 'black';
+                ctx.font = '12px "Press Start 2P"';
+                ctx.fillText('Press', canvas.width / 2, canvas.height / 2);
+                ctx.fillText('Spacebar', canvas.width / 2, canvas.height / 2 + 20);
+                ctx.fillText('to Start', canvas.width / 2, canvas.height / 2 + 40);
+                return;  // Don't draw anything else
+            }
+
+            // Draw pipes
+            ctx.fillStyle = 'green';
+            pipes.forEach(pipe => {
+                ctx.fillRect(pipe.x, 0, 50, pipe.y - 75);
+                ctx.fillRect(pipe.x, pipe.y + 75, 50, canvas.height - pipe.y - 75);
+            });
+
+            // Draw score
+            ctx.fillStyle = '#FFD700'; // Gold color
+            ctx.font = '16px "Press Start 2P"';
+            ctx.textAlign = 'left';
+            ctx.fillText(`Score: ${score}`, 10, 30);
+
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; // Semi-transparent black
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = '#FF4136'; // Bright red
+                ctx.font = '24px "Press Start 2P"';
+                ctx.textAlign = 'center';
+                ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 20);
+
+                ctx.fillStyle = '#FFFFFF'; // White
+                ctx.font = '12px "Press Start 2P"';
+                ctx.fillText('Press Space', canvas.width / 2, canvas.height / 2 + 10);
+                ctx.fillText('to Restart', canvas.width / 2, canvas.height / 2 + 30);
+            }
+        }
+
+        // Handle user input
+        document.addEventListener('keydown', event => {
+            if (event.code === 'Space') {
+                if (!gameStarted) {
+                    gameStarted = true;
+                    return;
+                }
+                if (gameOver) {
+                    resetGame();
+                } else {
+                    bird.velocity = bird.jump;
+                    // Add a slight upward boost for more responsive feel
+                    bird.y += bird.jump * 0.25;
+                }
+            }
+        });
+
+        // Reset game state
+        function resetGame() {
+            bird.y = 200;
+            bird.velocity = 0;
+            pipes = [];
+            score = 0;
+            gameOver = false;
+            gameStarted = false;  // Reset to start screen
+            frameCount = 0;  // Reset frame count
+        }
+
+        // Start the game loop only after the image has loaded
+        birdImg.onload = function() {
+            gameLoop();
+        };
+    </script>
+</body>
+</html>
