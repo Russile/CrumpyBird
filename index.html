@@ -44,9 +44,15 @@
         const gameWidth = 320;
         const gameHeight = 480;
 
-        // Load bird image
+        // Load bird images
+        const birdImgUp = new Image();
+        birdImgUp.src = 'bird_up.png';
+        const birdImgDown = new Image();
+        birdImgDown.src = 'bird_down.png';
         const birdImg = new Image();
         birdImg.src = 'bird.png';
+
+        let currentBirdImg = birdImgUp; // Start with bird_up.png
 
         // Load background image
         const backgroundImg = new Image();
@@ -128,6 +134,15 @@
             bird.velocity += bird.gravity;
             bird.y += bird.velocity;
 
+            // Update bird image based on velocity
+            if (bird.velocity < 0) {
+                currentBirdImg = birdImgDown; // DOWN when jumping (negative velocity)
+            } else if (bird.velocity > bird.gravity) {
+                currentBirdImg = birdImgUp; // UP when falling faster than gravity
+            } else {
+                currentBirdImg = birdImg; // Neutral for other cases
+            }
+
             // Update bird rotation
             if (bird.velocity >= bird.jump) {
                 bird.rotation = Math.min(Math.PI / 2, Math.max(-Math.PI / 2, bird.velocity * 0.18));
@@ -185,11 +200,11 @@
             ctx.drawImage(backgroundImg, Math.floor(backgroundX), 0);
             ctx.drawImage(backgroundImg, Math.floor(backgroundX) + backgroundImg.width - 1, 0);
 
-            // Draw bird with rotation
+            // Draw bird with rotation and current image
             ctx.save();
             ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
             ctx.rotate(bird.rotation);
-            ctx.drawImage(birdImg, -bird.width / 2, -bird.height / 2, bird.width, bird.height);
+            ctx.drawImage(currentBirdImg, -bird.width / 2, -bird.height / 2, bird.width, bird.height);
             ctx.restore();
 
             if (!gameStarted) {
@@ -215,6 +230,9 @@
                 ctx.fillStyle = testMode ? '#4CAF50' : 'black';
                 ctx.fillText('Press T for Test Mode', gameWidth / 2, gameHeight / 2 + 80);
                 ctx.fillText(testMode ? 'Test Mode ON' : 'Test Mode OFF', gameWidth / 2, gameHeight / 2 + 100);
+                
+                // Make sure to use currentBirdImg (which is birdImgUp) for the start screen
+                ctx.drawImage(currentBirdImg, bird.x, bird.y, bird.width, bird.height);
                 
                 return;  // Don't draw anything else
             }
@@ -279,6 +297,7 @@
             } else {
                 bird.velocity = bird.jump;
                 bird.y += bird.jump * 0.25; // Small initial boost
+                currentBirdImg = birdImgDown; // Immediately set to down image on jump
             }
         }
 
@@ -306,7 +325,7 @@
         }
 
         // Start the game loop only after all images have loaded
-        Promise.all([birdImg.decode(), backgroundImg.decode()]).then(() => {
+        Promise.all([birdImg.decode(), birdImgUp.decode(), birdImgDown.decode(), backgroundImg.decode()]).then(() => {
             gameLoop();
         }).catch(err => {
             console.error("Error loading images:", err);
