@@ -43,8 +43,12 @@ let testMode = false;
 let pipesPassed = 0;
 let backgroundSpeed = 1;
 let pipeSpeed = 2;
-const SPEED_INCREASE_INTERVAL = 5; // Increase speed every 5 pipes
-const SPEED_INCREASE_AMOUNT = 0.2; // Increase speed by 0.2 each time
+const SPEED_INCREASE_AMOUNT = 0.1; // Increase speed by 0.1 each time
+const MAX_SPEED = 10; // Maximum speed
+const INITIAL_PIPE_SPEED = 2; // Initial pipe speed
+const INITIAL_BACKGROUND_SPEED = 1; // Initial background speed
+const PIPE_SPACING = 200; // Desired horizontal spacing between pipes in pixels
+let lastPipeSpawnX = gameWidth;
 
 // Load pipe images
 const pipeImgs = [
@@ -111,6 +115,11 @@ function updateHighScore() {
 const FIXED_DELTA_TIME = 1 / 60; // 60 FPS logic update
 let lastUpdateTime = 0;
 
+// Add these variables to your game state
+let lastFlapDirection = 0; // 0 for neutral, -1 for up, 1 for down
+let flapTransitionFrames = 0;
+const FLAP_TRANSITION_DURATION = 3; // Adjust this value to control how long the neutral image is shown
+
 function update() {
     if (!gameStarted) return;
     if (gameOver) return;
@@ -128,11 +137,26 @@ function update() {
 
     // Bird animation
     if (bird.velocity < 0) {
-        currentBirdImg = birdImgDown; // Wings down when moving up
+        if (lastFlapDirection !== -1) {
+            flapTransitionFrames = FLAP_TRANSITION_DURATION;
+            lastFlapDirection = -1;
+        }
     } else if (bird.velocity > 0) {
-        currentBirdImg = birdImgUp; // Wings up when moving down
+        if (lastFlapDirection !== 1) {
+            flapTransitionFrames = FLAP_TRANSITION_DURATION;
+            lastFlapDirection = 1;
+        }
+    }
+
+    if (flapTransitionFrames > 0) {
+        currentBirdImg = birdImg; // Neutral image during transition
+        flapTransitionFrames--;
     } else {
-        currentBirdImg = birdImg; // Neutral image when not moving vertically
+        if (lastFlapDirection === -1) {
+            currentBirdImg = birdImgDown; // Wings down when moving up
+        } else if (lastFlapDirection === 1) {
+            currentBirdImg = birdImgUp; // Wings up when moving down
+        }
     }
 
     // Bird rotation
@@ -148,11 +172,7 @@ function update() {
         backgroundX += backgroundImg.width - 1;
     }
 
-    // Pipe generation and update
-    if (frameCount % 100 === 0) {
-        pipes.push(createPipe());
-    }
-
+    // Move existing pipes and check for passing
     for (let i = pipes.length - 1; i >= 0; i--) {
         const pipe = pipes[i];
         pipe.x -= pipeSpeed;
@@ -164,18 +184,24 @@ function update() {
             pipesPassed++;
             updateHighScore();
 
-            // Increase speed every SPEED_INCREASE_INTERVAL pipes
-            if (pipesPassed % SPEED_INCREASE_INTERVAL === 0) {
-                backgroundSpeed += SPEED_INCREASE_AMOUNT;
-                pipeSpeed += SPEED_INCREASE_AMOUNT;
-                console.log(`Speed increased: Background ${backgroundSpeed.toFixed(2)}, Pipes ${pipeSpeed.toFixed(2)}`);
-            }
+            // Increase speed every pipe
+            backgroundSpeed = Math.min(backgroundSpeed + SPEED_INCREASE_AMOUNT, MAX_SPEED);
+            pipeSpeed = Math.min(pipeSpeed + SPEED_INCREASE_AMOUNT, MAX_SPEED);
+            console.log(`Speed increased: Background ${backgroundSpeed.toFixed(2)}, Pipes ${pipeSpeed.toFixed(2)}`);
         }
 
         // Remove pipe if it's off screen
         if (pipe.x < -pipe.width) {
             pipes.splice(i, 1);
         }
+    }
+
+    // Spawn new pipes based on the last pipe's position
+    if (lastPipeSpawnX - pipeSpeed <= gameWidth - PIPE_SPACING) {
+        pipes.push(createPipe());
+        lastPipeSpawnX = gameWidth;
+    } else {
+        lastPipeSpawnX -= pipeSpeed;
     }
 
     // Check for collisions
@@ -284,6 +310,31 @@ function draw() {
     ctx.font = '12px "Press Start 2P"';
     ctx.fillText(`High Score: ${highScore}`, 10, 50);
 
+    // Draw speed meter at the bottom left
+    const SPEED_METER_WIDTH = 100;
+    const SPEED_METER_HEIGHT = 10;
+    const SPEED_METER_MARGIN = 10; // Margin from the bottom and left edges
+    const speedPercentage = (pipeSpeed - INITIAL_PIPE_SPEED) / (MAX_SPEED - INITIAL_PIPE_SPEED);
+    const meterFillWidth = speedPercentage * SPEED_METER_WIDTH;
+
+    // Draw meter background
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.fillRect(SPEED_METER_MARGIN, gameHeight - SPEED_METER_MARGIN - SPEED_METER_HEIGHT, SPEED_METER_WIDTH, SPEED_METER_HEIGHT);
+
+    // Draw meter fill
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+    ctx.fillRect(SPEED_METER_MARGIN, gameHeight - SPEED_METER_MARGIN - SPEED_METER_HEIGHT, meterFillWidth, SPEED_METER_HEIGHT);
+
+    // Draw meter border
+    ctx.strokeStyle = 'white';
+    ctx.strokeRect(SPEED_METER_MARGIN, gameHeight - SPEED_METER_MARGIN - SPEED_METER_HEIGHT, SPEED_METER_WIDTH, SPEED_METER_HEIGHT);
+
+    // Draw speed label
+    ctx.fillStyle = 'white';
+    ctx.font = '10px "Press Start 2P"';
+    ctx.textAlign = 'left';
+    ctx.fillText('Speed', SPEED_METER_MARGIN, gameHeight - SPEED_METER_MARGIN - SPEED_METER_HEIGHT - 5);
+
     if (gameOver) {
         // Semi-transparent background
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -341,7 +392,8 @@ function handleInput(event) {
         resetGame();
     } else {
         bird.velocity = bird.jump;
-        currentBirdImg = birdImgDown; // Set to down image on jump
+        flapTransitionFrames = FLAP_TRANSITION_DURATION; // Reset transition frames on jump
+        lastFlapDirection = -1; // Set to up flap on jump
     }
 }
 
@@ -373,9 +425,13 @@ function resetGame() {
     gameOver = false;
     gameStarted = false;
     frameCount = 0;
-    backgroundSpeed = 1; // Reset to initial speed
-    pipeSpeed = 2; // Reset to initial speed
-    testMode = false; // Ensure test mode is off when resetting the game
+    backgroundSpeed = INITIAL_BACKGROUND_SPEED;
+    pipeSpeed = INITIAL_PIPE_SPEED;
+    testMode = false;
+    lastFlapDirection = 0;
+    flapTransitionFrames = 0;
+    currentBirdImg = birdImg; // Start with neutral image
+    lastPipeSpawnX = gameWidth;
 }
 
 // Ensure all images are loaded before starting the game
