@@ -243,13 +243,22 @@ function update() {
         console.log('New pipe created');
     }
 
-    // Update pipes
+    // Update pipes and score
     for (let i = pipes.length - 1; i >= 0; i--) {
         const pipe = pipes[i];
         pipe.x -= pipeSpeed;
         console.log(`Pipe ${i} position: ${pipe.x}`);
 
-        if (pipe.x < -50) {
+        // Check if pipe is passed or destroyed
+        if (!pipe.passed && (pipe.x + pipe.width < bird.x || (pipe.topDestroyed && pipe.bottomDestroyed))) {
+            pipe.passed = true;
+            score++;
+            updateHighScore();
+            console.log(`Score incremented: ${score}`);
+        }
+
+        // Remove pipe if it's off screen
+        if (pipe.x < -pipe.width) {
             pipes.splice(i, 1);
             console.log(`Pipe ${i} removed`);
         }
@@ -291,7 +300,17 @@ function update() {
             pipe.bottomDestroyed = true;
             pipe.bottomCrumpleTime = 0;
         }
-        if (pipe.topDestroyed && pipe.bottomDestroyed) {
+        
+        // If both parts are destroyed and it hasn't been counted yet, count it as passed
+        if (pipe.topDestroyed && pipe.bottomDestroyed && !pipe.passed) {
+            pipe.passed = true;
+            score++;
+            updateHighScore();
+            console.log(`Score incremented for destroyed pipe: ${score}`);
+        }
+        
+        // Remove fully destroyed pipes that have been passed
+        if (pipe.topDestroyed && pipe.bottomDestroyed && pipe.passed) {
             pipes.splice(i, 1);
         }
     }
@@ -398,13 +417,13 @@ function draw() {
 
     // Draw score
     ctx.fillStyle = '#FFD700'; // Gold color
-    ctx.font = '16px "Press Start 2P"';
+    ctx.font = '20px Arial';
     ctx.textAlign = 'left';
     ctx.fillText(`Score: ${score}`, 10, 30);
 
     // Draw high score
     ctx.fillStyle = '#FFFFFF'; // White color
-    ctx.font = '12px "Press Start 2P"';
+    ctx.font = '16px Arial';
     ctx.fillText(`High Score: ${highScore}`, 10, 50);
 
     if (gameOver) {
