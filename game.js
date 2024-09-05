@@ -1,4 +1,3 @@
-
 const container = document.getElementById('gameContainer');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -31,8 +30,8 @@ let bird = {
     height: gameWidth * 0.1,
     radius: gameWidth * 0.04,
     velocity: 0,
-    gravity: 0.05,
-    jump: -2.5,  // Reduced from -2.9 to -2.5 for a less forceful jump
+    gravity: 0.50,
+    jump: -7.4,
     rotation: 0
 };
 
@@ -100,11 +99,8 @@ function updateHighScore() {
     }
 }
 
-function gameLoop() {
-    update();
-    draw();
-    requestAnimationFrame(gameLoop);
-}
+const FIXED_DELTA_TIME = 1 / 60; // 60 FPS logic update
+let lastUpdateTime = 0;
 
 function update() {
     if (!gameStarted) return;
@@ -117,18 +113,18 @@ function update() {
 
     // Update bird image based on velocity
     if (bird.velocity < 0) {
-        currentBirdImg = birdImgDown; // DOWN when jumping (negative velocity)
+        currentBirdImg = birdImgDown;
     } else if (bird.velocity > bird.gravity) {
-        currentBirdImg = birdImgUp; // UP when falling faster than gravity
+        currentBirdImg = birdImgUp;
     } else {
-        currentBirdImg = birdImg; // Neutral for other cases
+        currentBirdImg = birdImg;
     }
 
     // Update bird rotation
     if (bird.velocity >= bird.jump) {
-        bird.rotation = Math.min(Math.PI / 2, Math.max(-Math.PI / 2, bird.velocity * 0.18));
+        bird.rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 6, bird.velocity * 0.12));
     } else {
-        bird.rotation = -Math.PI / 6;  // Slight upward rotation when jumping
+        bird.rotation = -Math.PI / 12;
     }
 
     // In Test Mode, keep the bird on screen
@@ -140,7 +136,7 @@ function update() {
     }
 
     // Update background position
-    backgroundX -= 0.3;  // Reduced from 0.5 to 0.3 for slower scrolling
+    backgroundX -= 3; // Increased from 2 to 3 for faster scrolling
     if (backgroundX <= -backgroundImg.width) {
         backgroundX += backgroundImg.width;
     }
@@ -152,7 +148,7 @@ function update() {
 
     if (!testMode) {
         pipes.forEach(pipe => {
-            pipe.x -= 1;  // Reduced from 1.5 to 1 for slower scrolling
+            pipe.x -= 5; // Increased from 3 to 5 for faster pipe movement
 
             if (checkCollision(bird.x + bird.width / 2, bird.y + bird.height / 2, pipe.x, pipe.y - 75, pipe.y + 75)) {
                 gameOver = true;
@@ -170,6 +166,19 @@ function update() {
     pipes = pipes.filter(pipe => pipe.x > -50);
 }
 
+function gameLoop(currentTime) {
+    requestAnimationFrame(gameLoop);
+
+    // Update game state at a fixed time step
+    while (currentTime - lastUpdateTime >= FIXED_DELTA_TIME * 1000) {
+        update();
+        lastUpdateTime += FIXED_DELTA_TIME * 1000;
+    }
+
+    // Render as often as possible
+    draw();
+}
+
 // Draw game elements
 function draw() {
     ctx.clearRect(0, 0, gameWidth, gameHeight);
@@ -178,41 +187,30 @@ function draw() {
     ctx.drawImage(backgroundImg, Math.floor(backgroundX), 0);
     ctx.drawImage(backgroundImg, Math.floor(backgroundX) + backgroundImg.width - 1, 0);
 
+    if (!gameStarted) {
+        // Draw start screen
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, gameWidth, gameHeight);
+        
+        ctx.fillStyle = '#4CAF50'; // Green color
+        ctx.font = '24px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.fillText('Crumpy Bird', gameWidth / 2, gameHeight / 4);
+        
+        ctx.fillStyle = 'white';
+        ctx.font = '16px "Press Start 2P"';
+        ctx.fillText('Tap or Press Space', gameWidth / 2, gameHeight / 2);
+        ctx.fillText('to Start', gameWidth / 2, gameHeight / 2 + 30);
+        
+        return;  // Don't draw anything else
+    }
+
     // Draw bird with rotation and current image
     ctx.save();
     ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
     ctx.rotate(bird.rotation);
     ctx.drawImage(currentBirdImg, -bird.width / 2, -bird.height / 2, bird.width, bird.height);
     ctx.restore();
-
-    if (!gameStarted) {
-        // Draw start screen
-        // Semi-transparent background
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(0, 0, gameWidth, gameHeight);
-        
-        // Title "Crumpy Bird"
-        ctx.fillStyle = '#4CAF50'; // Green color
-        ctx.font = '24px "Press Start 2P"';
-        ctx.textAlign = 'center';
-        ctx.fillText('Crumpy Bird', gameWidth / 2, gameHeight / 4);
-        
-        // Add a shadow effect
-        ctx.fillStyle = '#45a049'; // Darker green for shadow
-        ctx.fillText('Crumpy Bird', gameWidth / 2 + 1, gameHeight / 4 + 1);
-        
-        // Instructions
-        ctx.fillStyle = 'white';
-        ctx.font = '12px "Press Start 2P"';
-        ctx.fillText('Tap or', gameWidth / 2, gameHeight / 2);
-        ctx.fillText('Press Space', gameWidth / 2, gameHeight / 2 + 20);
-        ctx.fillText('to Start', gameWidth / 2, gameHeight / 2 + 40);
-        
-        // Make sure to use currentBirdImg (which is birdImgUp) for the start screen
-        ctx.drawImage(currentBirdImg, bird.x, bird.y, bird.width, bird.height);
-        
-        return;  // Don't draw anything else
-    }
 
     // Draw pipes
     pipes.forEach(pipe => {
@@ -258,19 +256,32 @@ function draw() {
         ctx.fillText('to Restart', gameWidth / 2, gameHeight / 2 + 90);
     }
 
-    // Display Test Mode indicator if active
+    // Display Test Mode indicator and diagnostic information if active
     if (testMode) {
         ctx.fillStyle = '#4CAF50';
         ctx.font = '12px "Press Start 2P"';
         ctx.textAlign = 'left';
         ctx.fillText('Test Mode', 10, gameHeight - 10);
+
+        // Diagnostic information
+        ctx.fillStyle = 'white';
+        ctx.font = '12px Arial';
+        ctx.fillText(`Background X: ${backgroundX.toFixed(2)}`, 10, 70);
+        ctx.fillText(`Bird Y: ${bird.y.toFixed(2)}`, 10, 90);
+        ctx.fillText(`Bird Velocity: ${bird.velocity.toFixed(2)}`, 10, 110);
+        ctx.fillText(`Pipes: ${pipes.length}`, 10, 130);
+        ctx.fillText(`Frame Count: ${frameCount}`, 10, 150);
+        
+        // Add this to show the position of the first pipe
+        if (pipes.length > 0) {
+            ctx.fillText(`First Pipe X: ${pipes[0].x.toFixed(2)}`, 10, 170);
+        }
     }
 }
 
-// Handle user input
 function handleInput(event) {
     if (event.type === 'touchstart') {
-        event.preventDefault(); // Prevent default touch behavior
+        event.preventDefault();
     }
     if (!gameStarted) {
         gameStarted = true;
@@ -280,8 +291,6 @@ function handleInput(event) {
         resetGame();
     } else {
         bird.velocity = bird.jump;
-        bird.y += bird.jump * 0.2; // Reduced from 0.25 to 0.2 for a slightly less forceful initial boost
-        currentBirdImg = birdImgDown; // Immediately set to down image on jump
     }
 }
 
@@ -297,15 +306,13 @@ canvas.addEventListener('touchstart', handleInput);
 
 // Reset game state
 function resetGame() {
-    // No need to update high score here, as it's already updated when the game ends
-    bird.y = 200;
+    bird.y = gameHeight * 0.5;
     bird.velocity = 0;
     pipes = [];
     score = 0;
     gameOver = false;
-    gameStarted = false;  // Reset to start screen
-    frameCount = 0;  // Reset frame count
-    // Don't reset testMode here, so it persists across game restarts
+    gameStarted = false;
+    frameCount = 0;
 }
 
 // Ensure all images are loaded before starting the game
@@ -316,7 +323,9 @@ Promise.all([
     birdImgDown.decode(),
     backgroundImg.decode()
 ]).then(() => {
-    gameLoop();
+    // Start the game loop
+    lastUpdateTime = performance.now();
+    requestAnimationFrame(gameLoop);
 }).catch(err => {
     console.error("Error loading images:", err);
 });
