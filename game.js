@@ -122,6 +122,10 @@ let flapTransitionFrames = 0;
 const FLAP_DOWN_DURATION = 9; 
 const FLAP_TRANSITION_DURATION = 2; // Duration for transition to neutral
 
+// Add these variables at the top of your file with other game variables
+let initialJump = true;
+const INITIAL_JUMP_MULTIPLIER = 1.25; // Adjust this value as needed
+
 function update() {
     if (!gameStarted) return;
     if (gameOver) return;
@@ -261,7 +265,11 @@ function draw() {
         ctx.drawImage(titleLogoImg, logoX, logoY, logoWidth, logoHeight);
 
         // Center the "Tap to Start" text
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle'; // This centers the text vertically
         drawTextWithOutline('Tap to Start', gameWidth / 2, gameHeight * 0.75, 'white', 'black', 3, '24px', 'bold', 'center', 'middle');
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic'; // Reset to default
 
         return;  // Don't draw anything else
     }
@@ -373,7 +381,7 @@ function draw() {
     }
 }
 
-function drawTextWithOutline(text, x, y, fillStyle, strokeStyle, lineWidth, fontSize = '20px', fontWeight = 'normal', align = 'center', baseline = 'middle') {
+function drawTextWithOutline(text, x, y, fillStyle, strokeStyle, lineWidth, fontSize = '20px', fontWeight = 'normal', align = 'left', baseline = 'top') {
     ctx.font = `${fontWeight} ${fontSize} Roboto, Arial, sans-serif`;
     ctx.fillStyle = fillStyle;
     ctx.strokeStyle = strokeStyle;
@@ -390,15 +398,22 @@ function handleInput(event) {
     }
     if (!gameStarted) {
         gameStarted = true;
+        if (initialJump) {
+            // Give a larger initial jump
+            bird.velocity = bird.jump * INITIAL_JUMP_MULTIPLIER;
+            initialJump = false;
+        } else {
+            bird.velocity = bird.jump;
+        }
         return;
     }
     if (gameOver) {
         resetGame();
     } else {
         bird.velocity = bird.jump;
-        flapDownFrames = FLAP_DOWN_DURATION;
-        flapTransitionFrames = FLAP_TRANSITION_DURATION;
     }
+    flapDownFrames = FLAP_DOWN_DURATION;
+    flapTransitionFrames = FLAP_TRANSITION_DURATION;
 }
 
 document.addEventListener('keydown', function(event) {
@@ -415,9 +430,9 @@ canvas.addEventListener('touchstart', handleInput);
 function resetGame() {
     bird = {
         x: gameWidth * 0.2,
-        y: gameHeight * 0.5,
-        width: 30,  // Adjust this value to match your bird image width
-        height: 30, // Adjust this value to match your bird image height
+        y: gameHeight * 0.4, // Start bird higher
+        width: 30,
+        height: 30,
         velocity: 0,
         gravity: 0.5,
         jump: -7.4,
@@ -437,6 +452,7 @@ function resetGame() {
     flapTransitionFrames = 0;
     currentBirdImg = birdImg; // Start with neutral image
     lastPipeSpawnX = gameWidth;
+    initialJump = true; // Reset this flag when restarting the game
 }
 
 // Ensure all images are loaded before starting the game
@@ -475,3 +491,6 @@ function resizeCanvas() {
 // Call resizeCanvas initially and on window resize
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
+
+// Make sure to call resetGame() when initializing your game
+resetGame();
