@@ -125,6 +125,8 @@ const FLAP_TRANSITION_DURATION = 2; // Duration for transition to neutral
 // Add these variables at the top of your file with other game variables
 let initialJump = true;
 const INITIAL_JUMP_MULTIPLIER = 1.25; // Adjust this value as needed
+let gameOverTime = 0;
+const GAME_OVER_DELAY = 1000; // 1 second delay, adjust as needed
 
 function update() {
     if (!gameStarted) return;
@@ -181,6 +183,7 @@ function update() {
         // Check if bird hits the ground or flies too high
         if (bird.y + bird.height > gameHeight || bird.y < 0) {
             gameOver = true;
+            gameOverTime = Date.now(); // Record the time when game over occurs
             updateHighScore();
         }
 
@@ -188,6 +191,7 @@ function update() {
         for (let pipe of pipes) {
             if (checkCollision(bird.x, bird.y, pipe.x, pipe.topHeight, pipe.bottomY)) {
                 gameOver = true;
+                gameOverTime = Date.now(); // Record the time when game over occurs
                 updateHighScore();
                 break;
             }
@@ -352,8 +356,13 @@ function draw() {
         drawTextWithOutline(`Score: ${score}`, gameWidth / 2, gameHeight * 0.45, '#FFFFFF', 'black', 2, '20px', 'normal', 'center', 'middle');
         drawTextWithOutline(`High Score: ${highScore}`, gameWidth / 2, gameHeight * 0.55, '#FFFFFF', 'black', 2, '20px', 'normal', 'center', 'middle');
 
-        // Tap to Restart
-        drawTextWithOutline('Tap to Restart', gameWidth / 2, gameHeight * 0.7, '#FFFFFF', 'black', 2, '18px', 'normal', 'center', 'middle');
+        // Add a visual indicator for when the screen becomes clickable
+        if (Date.now() - gameOverTime < GAME_OVER_DELAY) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.fillRect(0, gameHeight - 5, (Date.now() - gameOverTime) / GAME_OVER_DELAY * gameWidth, 5);
+        } else {
+            drawTextWithOutline('Tap to Restart', gameWidth / 2, gameHeight * 0.7, '#FFFFFF', 'black', 2, '18px', 'normal', 'center', 'middle');
+        }
 
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
@@ -396,10 +405,20 @@ function handleInput(event) {
     if (event.type === 'touchstart') {
         event.preventDefault();
     }
+    
+    if (gameOver) {
+        // Check if enough time has passed since game over
+        if (Date.now() - gameOverTime >= GAME_OVER_DELAY) {
+            resetGame();
+            gameStarted = true; // Immediately start the game
+            bird.velocity = bird.jump * INITIAL_JUMP_MULTIPLIER; // Give initial boost
+        }
+        return;
+    }
+    
     if (!gameStarted) {
         gameStarted = true;
         if (initialJump) {
-            // Give a larger initial jump
             bird.velocity = bird.jump * INITIAL_JUMP_MULTIPLIER;
             initialJump = false;
         } else {
@@ -407,11 +426,8 @@ function handleInput(event) {
         }
         return;
     }
-    if (gameOver) {
-        resetGame();
-    } else {
-        bird.velocity = bird.jump;
-    }
+    
+    bird.velocity = bird.jump;
     flapDownFrames = FLAP_DOWN_DURATION;
     flapTransitionFrames = FLAP_TRANSITION_DURATION;
 }
@@ -442,7 +458,6 @@ function resetGame() {
     score = 0;
     pipesPassed = 0;
     gameOver = false;
-    gameStarted = false;
     frameCount = 0;
     backgroundSpeed = INITIAL_BACKGROUND_SPEED;
     pipeSpeed = INITIAL_PIPE_SPEED;
@@ -452,7 +467,7 @@ function resetGame() {
     flapTransitionFrames = 0;
     currentBirdImg = birdImg; // Start with neutral image
     lastPipeSpawnX = gameWidth;
-    initialJump = true; // Reset this flag when restarting the game
+    // Note: We're not resetting gameStarted to false here
 }
 
 // Ensure all images are loaded before starting the game
