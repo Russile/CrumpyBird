@@ -236,6 +236,10 @@ function gameLoop(currentTime) {
     draw();
 }
 
+// Load title logo image
+const titleLogoImg = new Image();
+titleLogoImg.src = 'title_logo.png';
+
 // Draw game elements
 function draw() {
     ctx.clearRect(0, 0, gameWidth, gameHeight);
@@ -248,17 +252,17 @@ function draw() {
         // Draw start screen
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(0, 0, gameWidth, gameHeight);
-        
-        ctx.fillStyle = '#4CAF50'; // Green color
-        ctx.font = '24px "Press Start 2P"';
-        ctx.textAlign = 'center';
-        ctx.fillText('Crumpy Bird', gameWidth / 2, gameHeight / 4);
-        
-        ctx.fillStyle = 'white';
-        ctx.font = '16px "Press Start 2P"';
-        ctx.fillText('Tap or Press Space', gameWidth / 2, gameHeight / 2);
-        ctx.fillText('to Start', gameWidth / 2, gameHeight / 2 + 30);
-        
+
+        // Draw title logo image
+        const logoWidth = 200; // Adjust if needed
+        const logoHeight = 100; // Adjust if needed
+        const logoX = (gameWidth - logoWidth) / 2;
+        const logoY = gameHeight * 0.25; // Position logo at 1/4 of screen height
+        ctx.drawImage(titleLogoImg, logoX, logoY, logoWidth, logoHeight);
+
+        // Center the "Tap to Start" text
+        drawTextWithOutline('Tap to Start', gameWidth / 2, gameHeight * 0.75, 'white', 'black', 3, '24px', 'bold', 'center', 'middle');
+
         return;  // Don't draw anything else
     }
 
@@ -294,85 +298,90 @@ function draw() {
         );
     });
 
-    // Draw score
-    ctx.fillStyle = '#FFD700'; // Gold color
-    ctx.font = '16px "Press Start 2P"';
-    ctx.textAlign = 'left';
-    ctx.fillText(`Score: ${score}`, 10, 30);
+    // Draw score - align left
+    drawTextWithOutline(`Score: ${score}`, 10, 30, '#FFD700', 'black', 3, '20px', 'bold', 'left', 'top');
 
-    // Draw high score
-    ctx.fillStyle = '#FFFFFF'; // White color
-    ctx.font = '12px "Press Start 2P"';
-    ctx.fillText(`High Score: ${highScore}`, 10, 50);
+    // Draw high score - align left
+    drawTextWithOutline(`High Score: ${highScore}`, 10, 55, '#FFFFFF', 'black', 2, '16px', 'normal', 'left', 'top');
 
-    // Draw speed meter at the bottom left
+    // Draw speed meter
     const SPEED_METER_WIDTH = 100;
     const SPEED_METER_HEIGHT = 10;
-    const SPEED_METER_MARGIN = 10; // Margin from the bottom and left edges
+    const SPEED_METER_MARGIN = 10;
     const speedPercentage = (pipeSpeed - INITIAL_PIPE_SPEED) / (MAX_SPEED - INITIAL_PIPE_SPEED);
     const meterFillWidth = speedPercentage * SPEED_METER_WIDTH;
 
+    // Position speed meter at bottom left
+    const meterX = SPEED_METER_MARGIN;
+
     // Draw meter background
     ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-    ctx.fillRect(SPEED_METER_MARGIN, gameHeight - SPEED_METER_MARGIN - SPEED_METER_HEIGHT, SPEED_METER_WIDTH, SPEED_METER_HEIGHT);
+    ctx.fillRect(meterX, gameHeight - SPEED_METER_MARGIN - SPEED_METER_HEIGHT, SPEED_METER_WIDTH, SPEED_METER_HEIGHT);
 
     // Draw meter fill
     ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
-    ctx.fillRect(SPEED_METER_MARGIN, gameHeight - SPEED_METER_MARGIN - SPEED_METER_HEIGHT, meterFillWidth, SPEED_METER_HEIGHT);
+    ctx.fillRect(meterX, gameHeight - SPEED_METER_MARGIN - SPEED_METER_HEIGHT, meterFillWidth, SPEED_METER_HEIGHT);
 
     // Draw meter border
     ctx.strokeStyle = 'white';
-    ctx.strokeRect(SPEED_METER_MARGIN, gameHeight - SPEED_METER_MARGIN - SPEED_METER_HEIGHT, SPEED_METER_WIDTH, SPEED_METER_HEIGHT);
+    ctx.strokeRect(meterX, gameHeight - SPEED_METER_MARGIN - SPEED_METER_HEIGHT, SPEED_METER_WIDTH, SPEED_METER_HEIGHT);
 
     // Draw speed label
-    ctx.fillStyle = 'white';
-    ctx.font = '10px "Press Start 2P"';
-    ctx.textAlign = 'left';
-    ctx.fillText('Speed', SPEED_METER_MARGIN, gameHeight - SPEED_METER_MARGIN - SPEED_METER_HEIGHT - 5);
+    drawTextWithOutline('Speed', meterX, gameHeight - SPEED_METER_MARGIN - SPEED_METER_HEIGHT - 5, 'white', 'black', 2, '10px', 'normal', 'left', 'bottom');
 
     if (gameOver) {
         // Semi-transparent background
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(0, 0, gameWidth, gameHeight);
 
-        ctx.fillStyle = '#FF4136'; // Bright red
-        ctx.font = '24px "Press Start 2P"';
         ctx.textAlign = 'center';
-        ctx.fillText('Game Over', gameWidth / 2, gameHeight / 2 - 50);
+        ctx.textBaseline = 'middle';
 
-        ctx.fillStyle = '#FFFFFF'; // White
-        ctx.font = '16px "Press Start 2P"';
-        ctx.fillText(`Score: ${score}`, gameWidth / 2, gameHeight / 2);
-        ctx.fillText(`High Score: ${highScore}`, gameWidth / 2, gameHeight / 2 + 30);
+        // Game Over text
+        drawTextWithOutline('Game Over', gameWidth / 2, gameHeight * 0.3, '#FF4136', 'black', 3, '32px', 'bold', 'center', 'middle');
 
-        ctx.font = '12px "Press Start 2P"';
-        ctx.fillText('Tap or Press Space', gameWidth / 2, gameHeight / 2 + 70);
-        ctx.fillText('to Restart', gameWidth / 2, gameHeight / 2 + 90);
+        // Score and High Score
+        drawTextWithOutline(`Score: ${score}`, gameWidth / 2, gameHeight * 0.45, '#FFFFFF', 'black', 2, '20px', 'normal', 'center', 'middle');
+        drawTextWithOutline(`High Score: ${highScore}`, gameWidth / 2, gameHeight * 0.55, '#FFFFFF', 'black', 2, '20px', 'normal', 'center', 'middle');
+
+        // Tap to Restart
+        drawTextWithOutline('Tap to Restart', gameWidth / 2, gameHeight * 0.7, '#FFFFFF', 'black', 2, '18px', 'normal', 'center', 'middle');
+
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
     }
 
     // Display Test Mode indicator and diagnostic information if active
     if (testMode) {
-        ctx.fillStyle = '#4CAF50';
-        ctx.font = '12px "Press Start 2P"';
-        ctx.textAlign = 'left';
-        ctx.fillText('Test Mode', 10, gameHeight - 10);
+        drawTextWithOutline('Test Mode', 10, gameHeight - 10, '#4CAF50', 'black', 2, '14px');
 
         // Diagnostic information
-        ctx.fillStyle = 'white';
-        ctx.font = '12px Arial';
-        ctx.fillText(`Background X: ${backgroundX.toFixed(2)}`, 10, 70);
-        ctx.fillText(`Bird Y: ${bird.y.toFixed(2)}`, 10, 90);
-        ctx.fillText(`Bird Velocity: ${bird.velocity.toFixed(2)}`, 10, 110);
-        ctx.fillText(`Pipes: ${pipes.length}`, 10, 130);
-        ctx.fillText(`Pipes Passed: ${pipesPassed}`, 10, 150);
-        ctx.fillText(`Pipe Speed: ${pipeSpeed.toFixed(2)}`, 10, 170);
-        ctx.fillText(`Frame Count: ${frameCount}`, 10, 190);
-        
-        // Add this to show the position of the first pipe
-        if (pipes.length > 0) {
-            ctx.fillText(`First Pipe X: ${pipes[0].x.toFixed(2)}`, 10, 210);
-        }
+        let yPos = 70;
+        [
+            `Background X: ${backgroundX.toFixed(2)}`,
+            `Bird Y: ${bird.y.toFixed(2)}`,
+            `Bird Velocity: ${bird.velocity.toFixed(2)}`,
+            `Pipes: ${pipes.length}`,
+            `Pipes Passed: ${pipesPassed}`,
+            `Pipe Speed: ${pipeSpeed.toFixed(2)}`,
+            `Frame Count: ${frameCount}`,
+            pipes.length > 0 ? `First Pipe X: ${pipes[0].x.toFixed(2)}` : ''
+        ].forEach(text => {
+            drawTextWithOutline(text, 10, yPos, 'white', 'black', 2, '14px');
+            yPos += 20;
+        });
     }
+}
+
+function drawTextWithOutline(text, x, y, fillStyle, strokeStyle, lineWidth, fontSize = '20px', fontWeight = 'normal', align = 'center', baseline = 'middle') {
+    ctx.font = `${fontWeight} ${fontSize} Roboto, Arial, sans-serif`;
+    ctx.fillStyle = fillStyle;
+    ctx.strokeStyle = strokeStyle;
+    ctx.lineWidth = lineWidth;
+    ctx.textAlign = align;
+    ctx.textBaseline = baseline;
+    ctx.strokeText(text, x, y);
+    ctx.fillText(text, x, y);
 }
 
 function handleInput(event) {
@@ -436,7 +445,8 @@ Promise.all([
     birdImg.decode(),
     birdImgUp.decode(),
     birdImgDown.decode(),
-    backgroundImg.decode()
+    backgroundImg.decode(),
+    titleLogoImg.decode()
 ]).then(() => {
     // Start the game loop
     lastUpdateTime = performance.now();
