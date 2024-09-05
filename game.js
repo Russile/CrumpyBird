@@ -120,7 +120,7 @@ let lastFlapDirection = 0; // 0 for neutral, -1 for up, 1 for down
 let flapDownFrames = 0;
 let flapTransitionFrames = 0;
 const FLAP_DOWN_DURATION = 9; 
-const FLAP_TRANSITION_DURATION = 4; // Duration for transition to neutral
+const FLAP_TRANSITION_DURATION = 2; // Duration for transition to neutral
 
 function update() {
     if (!gameStarted) return;
@@ -128,14 +128,9 @@ function update() {
 
     frameCount++;
 
+    // Apply gravity and update bird position
     bird.velocity += bird.gravity;
     bird.y += bird.velocity;
-
-    // Prevent bird from falling through the bottom of the screen in test mode
-    if (testMode) {
-        bird.y = Math.min(bird.y, gameHeight - bird.height);
-        bird.velocity = Math.min(bird.velocity, 0); // Prevent downward velocity when at bottom
-    }
 
     // Bird animation
     if (flapDownFrames > 0) {
@@ -163,6 +158,36 @@ function update() {
     backgroundX -= backgroundSpeed;
     if (backgroundX <= -backgroundImg.width + 1) {
         backgroundX += backgroundImg.width - 1;
+    }
+
+    // Test mode modifications
+    if (testMode) {
+        // Prevent bird from falling through the bottom of the screen
+        if (bird.y + bird.height > gameHeight) {
+            bird.y = gameHeight - bird.height;
+            bird.velocity = 0;
+        }
+        // Prevent bird from flying too high
+        if (bird.y < 0) {
+            bird.y = 0;
+            bird.velocity = 0;
+        }
+    } else {
+        // Normal mode collision checks
+        // Check if bird hits the ground or flies too high
+        if (bird.y + bird.height > gameHeight || bird.y < 0) {
+            gameOver = true;
+            updateHighScore();
+        }
+
+        // Check for collisions with pipes
+        for (let pipe of pipes) {
+            if (checkCollision(bird.x, bird.y, pipe.x, pipe.topHeight, pipe.bottomY)) {
+                gameOver = true;
+                updateHighScore();
+                break;
+            }
+        }
     }
 
     // Move existing pipes and check for passing
@@ -195,29 +220,6 @@ function update() {
         lastPipeSpawnX = gameWidth;
     } else {
         lastPipeSpawnX -= pipeSpeed;
-    }
-
-    // Check for collisions
-    if (!testMode) {
-        for (let pipe of pipes) {
-            if (checkCollision(bird.x, bird.y, pipe.x, pipe.topHeight, pipe.bottomY)) {
-                gameOver = true;
-                updateHighScore();
-                break;
-            }
-        }
-
-        // Check if bird hits the ground or flies too high
-        if (bird.y + bird.height > gameHeight || bird.y < 0) {
-            gameOver = true;
-            updateHighScore();
-        }
-    } else {
-        // In test mode, only check if bird flies too high
-        if (bird.y < 0) {
-            bird.y = 0;
-            bird.velocity = 0;
-        }
     }
 }
 
@@ -405,8 +407,8 @@ function resetGame() {
     bird = {
         x: gameWidth * 0.2,
         y: gameHeight * 0.5,
-        width: gameWidth * 0.1,
-        height: gameWidth * 0.1,
+        width: 30,  // Adjust this value to match your bird image width
+        height: 30, // Adjust this value to match your bird image height
         velocity: 0,
         gravity: 0.5,
         jump: -7.4,
