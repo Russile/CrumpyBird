@@ -78,16 +78,196 @@ function createPipe() {
     };
 }
 
-// Add this function to calculate distance between two points
-function distance(x1, y1, x2, y2) {
-    return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+// Add this function to check if a tap is within a button area
+function isTapWithinButton(x, y, buttonX, buttonY, buttonWidth, buttonHeight) {
+    return x >= buttonX && x <= buttonX + buttonWidth &&
+           y >= buttonY && y <= buttonY + buttonHeight;
+}
+
+// Add this function to handle both mouse clicks and touch events
+function handlePointerEvent(event) {
+    event.preventDefault();
+
+    let tapX, tapY;
+    
+    if (event.type === 'touchstart') {
+        // Touch event
+        if (event.touches.length > 0) {
+            const touch = event.touches[0];
+            tapX = touch.clientX;
+            tapY = touch.clientY;
+        }
+    } else {
+        // Mouse event
+        tapX = event.clientX;
+        tapY = event.clientY;
+    }
+
+    if (tapX === undefined || tapY === undefined) {
+        return; // Exit if we couldn't get valid coordinates
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = gameWidth / rect.width;
+    const scaleY = gameHeight / rect.height;
+    
+    tapX = (tapX - rect.left) * scaleX;
+    tapY = (tapY - rect.top) * scaleY;
+
+    const startButtonY = gameHeight * 0.7 - BUTTON_HEIGHT / 2;
+    const hardModeButtonY = gameHeight * 0.8 - BUTTON_HEIGHT / 2;
+    const buttonX = gameWidth / 2 - BUTTON_WIDTH / 2;
+
+    if (!gameStarted) {
+        if (isTapWithinButton(tapX, tapY, buttonX, startButtonY, BUTTON_WIDTH, BUTTON_HEIGHT)) {
+            startGame(false);
+        } else if (hardModeUnlocked && isTapWithinButton(tapX, tapY, buttonX, hardModeButtonY, BUTTON_WIDTH, BUTTON_HEIGHT)) {
+            startGame(true);
+        }
+    } else if (gameOver) {
+        if (Date.now() - gameOverTime >= GAME_OVER_DELAY) {
+            if (isTapWithinButton(tapX, tapY, buttonX, startButtonY, BUTTON_WIDTH, BUTTON_HEIGHT)) {
+                restartGame(false);
+            } else if (hardModeUnlocked && isTapWithinButton(tapX, tapY, buttonX, hardModeButtonY, BUTTON_WIDTH, BUTTON_HEIGHT)) {
+                restartGame(true);
+            }
+        }
+    } else {
+        jump();
+    }
+}
+
+// Add these new functions to handle game actions
+function startGame(hardMode) {
+    gameStarted = true;
+    hardModeActive = hardMode;
+    resetGame(hardMode);
+    bird.velocity = bird.jump * INITIAL_JUMP_MULTIPLIER;
+}
+
+function restartGame(hardMode) {
+    resetGame(hardMode);
+    gameStarted = true;
+    hardModeActive = hardMode;
+    bird.velocity = bird.jump * INITIAL_JUMP_MULTIPLIER;
+}
+
+function jump() {
+    bird.velocity = bird.jump;
+    flapDownFrames = FLAP_DOWN_DURATION;
+    flapTransitionFrames = FLAP_TRANSITION_DURATION;
+}
+
+// Update event listeners
+canvas.addEventListener('touchstart', handlePointerEvent, { passive: false });
+canvas.addEventListener('mousedown', handlePointerEvent);
+
+// Modify the keydown event listener
+document.addEventListener('keydown', function(event) {
+    if (event.code === 'Space') {
+        if (!gameStarted) {
+            startGame(false);
+        } else if (gameOver) {
+            if (Date.now() - gameOverTime >= GAME_OVER_DELAY) {
+                restartGame(false);
+            }
+        } else {
+            jump();
+        }
+    } else if (event.key === 'h' || event.key === 'H') {
+        testHardMode = !testHardMode;
+        hardModeUnlocked = true;
+    }
+});
+
+// Add these variables at the top of your file with other game variables
+let initialJump = true;
+const INITIAL_JUMP_MULTIPLIER = 1.25; // Adjust this value as needed
+let gameOverTime = 0;
+const GAME_OVER_DELAY = 1000; // 1 second delay, adjust as needed
+
+// Add these variables at the top of your file
+let hardModeUnlocked = false;
+let hardModeActive = false;
+const HARD_MODE_UNLOCK_SCORE = 25;
+const HARD_MODE_SPEED_MULTIPLIER = 2;
+const HARD_MODE_GAP_REDUCTION = 0.8; // 80% of normal gap size
+
+// Add this variable near the top of your file
+let testHardMode = false;
+
+// Add this event listener after your existing event listeners
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'h' || event.key === 'H') {
+        testHardMode = !testHardMode;
+        hardModeUnlocked = true;
+    }
+});
+
+// Add these constants for button dimensions
+const BUTTON_WIDTH = 200;
+const BUTTON_HEIGHT = 50;
+
+// Modify resetGame function
+function resetGame(startInHardMode = false) {
+    bird = {
+        x: gameWidth * 0.2,
+        y: gameHeight * 0.4, // Start bird higher
+        width: 30,
+        height: 30,
+        velocity: 0,
+        gravity: 0.5,
+        jump: -7.4,
+        rotation: 0
+    };
+    pipes = [];
+    score = 0;
+    pipesPassed = 0;
+    gameOver = false;
+    frameCount = 0;
+    backgroundSpeed = INITIAL_BACKGROUND_SPEED;
+    pipeSpeed = INITIAL_PIPE_SPEED;
+    testMode = false;
+    lastFlapDirection = 0;
+    flapDownFrames = 0;
+    flapTransitionFrames = 0;
+    currentBirdImg = birdImg; // Start with neutral image
+    lastPipeSpawnX = gameWidth;
+    // Note: We're not resetting gameStarted to false here
+
+    hardModeActive = startInHardMode;
+    if (hardModeActive) {
+        backgroundSpeed = INITIAL_BACKGROUND_SPEED * HARD_MODE_SPEED_MULTIPLIER;
+        pipeSpeed = INITIAL_PIPE_SPEED * HARD_MODE_SPEED_MULTIPLIER;
+    } else {
+        backgroundSpeed = INITIAL_BACKGROUND_SPEED;
+        pipeSpeed = INITIAL_PIPE_SPEED;
+    }
+}
+
+// Modify createPipe function
+function createPipe() {
+    const gapHeight = hardModeActive ? 120 : 150; // Smaller gap in hard mode
+    const minHeight = 50;
+    const maxHeight = gameHeight - gapHeight - minHeight;
+    const topHeight = Math.random() * (maxHeight - minHeight) + minHeight;
+    
+    return {
+        x: gameWidth,
+        y: topHeight + gapHeight,
+        width: 50,
+        topHeight: topHeight,
+        bottomY: topHeight + gapHeight,
+        passed: false,
+        img: pipeImgs[Math.floor(Math.random() * pipeImgs.length)]
+    };
 }
 
 // Modify the checkCollision function to use circular hitbox
 function checkCollision(birdX, birdY, pipeX, pipeTop, pipeBottom) {
-    const birdRadius = bird.width / 2;
-    const birdCenterX = birdX + birdRadius;
-    const birdCenterY = birdY + birdRadius;
+    const birdRadius = bird.width * 0.3; // Adjust this factor to make the collision circle smaller
+    const birdCenterX = birdX + bird.width / 2;
+    const birdCenterY = birdY + bird.height / 2;
     const pipeWidth = 50; // Adjust this to match your pipe width
 
     // Only check for collision if the bird is horizontally aligned with the pipe
@@ -106,6 +286,16 @@ function checkCollision(birdX, birdY, pipeX, pipeTop, pipeBottom) {
 }
 
 function updateHighScore() {
+    console.log(`Updating high score. Current score: ${score}, Current high score: ${highScore}`);
+    
+    // Check for hard mode unlock regardless of high score
+    if (score >= HARD_MODE_UNLOCK_SCORE && !hardModeUnlocked) {
+        hardModeUnlocked = true;
+        localStorage.setItem('hardModeUnlocked', 'true');
+        showHardModeUnlockedPopup();
+    }
+
+    // Update high score if necessary
     if (score > highScore) {
         highScore = score;
         localStorage.setItem('highScore', highScore);
@@ -122,11 +312,21 @@ let flapTransitionFrames = 0;
 const FLAP_DOWN_DURATION = 9; 
 const FLAP_TRANSITION_DURATION = 2; // Duration for transition to neutral
 
-// Add these variables at the top of your file with other game variables
-let initialJump = true;
-const INITIAL_JUMP_MULTIPLIER = 1.25; // Adjust this value as needed
-let gameOverTime = 0;
-const GAME_OVER_DELAY = 1000; // 1 second delay, adjust as needed
+// Add these variables at the top of your file
+let showingUnlockPopup = false;
+let popupOpacity = 1;
+const POPUP_FADE_DURATION = 750; // 0.75 seconds
+let popupFadeStartTime;
+
+// Load the hard mode unlock image
+const hardModeUnlockedImg = new Image();
+hardModeUnlockedImg.src = 'hardmodeunlocked.png';
+
+function showHardModeUnlockedPopup() {
+    showingUnlockPopup = true;
+    popupOpacity = 1;
+    popupFadeStartTime = Date.now();
+}
 
 function update() {
     if (!gameStarted) return;
@@ -213,7 +413,6 @@ function update() {
             // Increase speed every pipe
             backgroundSpeed = Math.min(backgroundSpeed + SPEED_INCREASE_AMOUNT, MAX_SPEED);
             pipeSpeed = Math.min(pipeSpeed + SPEED_INCREASE_AMOUNT, MAX_SPEED);
-            console.log(`Speed increased: Background ${backgroundSpeed.toFixed(2)}, Pipes ${pipeSpeed.toFixed(2)}`);
         }
 
         // Remove pipe if it's off screen
@@ -228,6 +427,13 @@ function update() {
         lastPipeSpawnX = gameWidth;
     } else {
         lastPipeSpawnX -= pipeSpeed;
+    }
+
+    // Check for hard mode unlock in the main update loop
+    if (score >= HARD_MODE_UNLOCK_SCORE && !hardModeUnlocked) {
+        hardModeUnlocked = true;
+        localStorage.setItem('hardModeUnlocked', 'true');
+        showHardModeUnlockedPopup();
     }
 }
 
@@ -268,12 +474,21 @@ function draw() {
         const logoY = gameHeight * 0.25; // Position logo at 1/4 of screen height
         ctx.drawImage(titleLogoImg, logoX, logoY, logoWidth, logoHeight);
 
-        // Center the "Tap to Start" text
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle'; // This centers the text vertically
-        drawTextWithOutline('Tap to Start', gameWidth / 2, gameHeight * 0.75, 'white', 'black', 3, '24px', 'bold', 'center', 'middle');
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'alphabetic'; // Reset to default
+        // Draw "Start" button
+        const startButtonY = gameHeight * 0.7 - BUTTON_HEIGHT / 2;
+        const buttonX = gameWidth / 2 - BUTTON_WIDTH / 2;
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.fillRect(buttonX, startButtonY, BUTTON_WIDTH, BUTTON_HEIGHT);
+        drawTextWithOutline('Start', gameWidth / 2, gameHeight * 0.7, 'white', 'black', 3, '24px', 'bold', 'center', 'middle');
+
+        if (hardModeUnlocked) {
+            // Draw "Hard Mode" button
+            const hardModeButtonY = gameHeight * 0.8 - BUTTON_HEIGHT / 2;
+            ctx.fillStyle = 'rgba(255, 69, 0, 0.3)';
+            ctx.fillRect(buttonX, hardModeButtonY, BUTTON_WIDTH, BUTTON_HEIGHT);
+            drawTextWithOutline('Hard Mode', gameWidth / 2, gameHeight * 0.8, '#FF4136', 'black', 2, '18px', 'normal', 'center', 'middle');
+        }
 
         return;  // Don't draw anything else
     }
@@ -356,12 +571,25 @@ function draw() {
         drawTextWithOutline(`Score: ${score}`, gameWidth / 2, gameHeight * 0.45, '#FFFFFF', 'black', 2, '20px', 'normal', 'center', 'middle');
         drawTextWithOutline(`High Score: ${highScore}`, gameWidth / 2, gameHeight * 0.55, '#FFFFFF', 'black', 2, '20px', 'normal', 'center', 'middle');
 
-        // Add a visual indicator for when the screen becomes clickable
         if (Date.now() - gameOverTime < GAME_OVER_DELAY) {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
             ctx.fillRect(0, gameHeight - 5, (Date.now() - gameOverTime) / GAME_OVER_DELAY * gameWidth, 5);
         } else {
-            drawTextWithOutline('Tap to Restart', gameWidth / 2, gameHeight * 0.7, '#FFFFFF', 'black', 2, '18px', 'normal', 'center', 'middle');
+            // Draw "Restart" button
+            const restartButtonY = gameHeight * 0.7 - BUTTON_HEIGHT / 2;
+            const buttonX = gameWidth / 2 - BUTTON_WIDTH / 2;
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(buttonX, restartButtonY, BUTTON_WIDTH, BUTTON_HEIGHT);
+            drawTextWithOutline('Restart', gameWidth / 2, gameHeight * 0.7, '#FFFFFF', 'black', 2, '18px', 'normal', 'center', 'middle');
+
+            if (hardModeUnlocked) {
+                // Draw "Hard Mode" button
+                const hardModeButtonY = gameHeight * 0.8 - BUTTON_HEIGHT / 2;
+                ctx.fillStyle = 'rgba(255, 69, 0, 0.3)';
+                ctx.fillRect(buttonX, hardModeButtonY, BUTTON_WIDTH, BUTTON_HEIGHT);
+                drawTextWithOutline('Hard Mode', gameWidth / 2, gameHeight * 0.8, '#FF4136', 'black', 2, '18px', 'normal', 'center', 'middle');
+            }
         }
 
         ctx.textAlign = 'left';
@@ -370,7 +598,7 @@ function draw() {
 
     // Display Test Mode indicator and diagnostic information if active
     if (testMode) {
-        drawTextWithOutline('Test Mode', 10, gameHeight - 10, '#4CAF50', 'black', 2, '14px');
+        drawTextWithOutline('Test Mode', 10, gameHeight - 10, '#4CAF50', 'black', 2, '14px', 'bold', 'left', 'bottom');
 
         // Diagnostic information
         let yPos = 70;
@@ -388,6 +616,48 @@ function draw() {
             yPos += 20;
         });
     }
+
+    // Move Hard Mode indicator to bottom right
+    if (hardModeActive) {
+        drawTextWithOutline('HARD MODE', gameWidth - 10, gameHeight - 10, '#FF4136', 'black', 2, '14px', 'bold', 'right', 'bottom');
+    }
+
+    // Display Test Hard Mode indicator if active (also moved to bottom right)
+    if (testHardMode) {
+        drawTextWithOutline('Test Hard Mode', gameWidth - 10, gameHeight - 30, '#FF4136', 'black', 2, '14px', 'bold', 'right', 'bottom');
+    }
+
+    // Always check if we should show the popup
+    if (showingUnlockPopup) {
+        const currentTime = Date.now();
+        const elapsedTime = currentTime - popupFadeStartTime;
+        
+        if (elapsedTime < POPUP_FADE_DURATION) {
+            popupOpacity = 1 - (elapsedTime / POPUP_FADE_DURATION);
+            
+            ctx.globalAlpha = popupOpacity;
+            const popupWidth = gameWidth * 0.8;
+            const popupHeight = popupWidth * (hardModeUnlockedImg.height / hardModeUnlockedImg.width);
+            const popupX = (gameWidth - popupWidth) / 2;
+            const popupY = (gameHeight - popupHeight) / 2;
+            
+            ctx.drawImage(hardModeUnlockedImg, popupX, popupY, popupWidth, popupHeight);
+            ctx.globalAlpha = 1;
+        } else {
+            showingUnlockPopup = false;
+        }
+    }
+
+    // Draw bird collision circle (for debugging)
+    if (window.debugMode) {
+        const birdRadius = bird.width * 0.3;
+        const birdCenterX = bird.x + bird.width / 2;
+        const birdCenterY = bird.y + bird.height / 2;
+        ctx.beginPath();
+        ctx.arc(birdCenterX, birdCenterY, birdRadius, 0, 2 * Math.PI);
+        ctx.strokeStyle = 'red';
+        ctx.stroke();
+    }
 }
 
 function drawTextWithOutline(text, x, y, fillStyle, strokeStyle, lineWidth, fontSize = '20px', fontWeight = 'normal', align = 'left', baseline = 'top') {
@@ -401,75 +671,6 @@ function drawTextWithOutline(text, x, y, fillStyle, strokeStyle, lineWidth, font
     ctx.fillText(text, x, y);
 }
 
-function handleInput(event) {
-    if (event.type === 'touchstart') {
-        event.preventDefault();
-    }
-    
-    if (gameOver) {
-        // Check if enough time has passed since game over
-        if (Date.now() - gameOverTime >= GAME_OVER_DELAY) {
-            resetGame();
-            gameStarted = true; // Immediately start the game
-            bird.velocity = bird.jump * INITIAL_JUMP_MULTIPLIER; // Give initial boost
-        }
-        return;
-    }
-    
-    if (!gameStarted) {
-        gameStarted = true;
-        if (initialJump) {
-            bird.velocity = bird.jump * INITIAL_JUMP_MULTIPLIER;
-            initialJump = false;
-        } else {
-            bird.velocity = bird.jump;
-        }
-        return;
-    }
-    
-    bird.velocity = bird.jump;
-    flapDownFrames = FLAP_DOWN_DURATION;
-    flapTransitionFrames = FLAP_TRANSITION_DURATION;
-}
-
-document.addEventListener('keydown', function(event) {
-    if (event.code === 'Space') {
-        handleInput(event);
-    } else if (event.code === 'KeyT' && !gameStarted) {
-        testMode = !testMode;
-        console.log("Test mode " + (testMode ? "enabled" : "disabled"));
-    }
-});
-
-canvas.addEventListener('touchstart', handleInput);
-
-function resetGame() {
-    bird = {
-        x: gameWidth * 0.2,
-        y: gameHeight * 0.4, // Start bird higher
-        width: 30,
-        height: 30,
-        velocity: 0,
-        gravity: 0.5,
-        jump: -7.4,
-        rotation: 0
-    };
-    pipes = [];
-    score = 0;
-    pipesPassed = 0;
-    gameOver = false;
-    frameCount = 0;
-    backgroundSpeed = INITIAL_BACKGROUND_SPEED;
-    pipeSpeed = INITIAL_PIPE_SPEED;
-    testMode = false;
-    lastFlapDirection = 0;
-    flapDownFrames = 0;
-    flapTransitionFrames = 0;
-    currentBirdImg = birdImg; // Start with neutral image
-    lastPipeSpawnX = gameWidth;
-    // Note: We're not resetting gameStarted to false here
-}
-
 // Ensure all images are loaded before starting the game
 Promise.all([
     ...pipeImgs.map(img => img.decode()),
@@ -477,7 +678,8 @@ Promise.all([
     birdImgUp.decode(),
     birdImgDown.decode(),
     backgroundImg.decode(),
-    titleLogoImg.decode()
+    titleLogoImg.decode(),
+    hardModeUnlockedImg.decode()
 ]).then(() => {
     // Start the game loop
     lastUpdateTime = performance.now();
@@ -503,9 +705,34 @@ function resizeCanvas() {
     ctx.scale(scale * dpr, scale * dpr);
 }
 
-// Call resizeCanvas initially and on window resize
+// Call resizeCanvas initially and on window resize 
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
+// Add this to your initialization code
+hardModeUnlocked = localStorage.getItem('hardModeUnlocked') === 'true';
+
 // Make sure to call resetGame() when initializing your game
 resetGame();
+
+// Developer tools
+window.devTools = {
+    resetHighScore: function() {
+        highScore = 0;
+        localStorage.setItem('highScore', '0');
+        console.log('High score reset to 0');
+    },
+    toggleHardMode: function() {
+        hardModeUnlocked = !hardModeUnlocked;
+        localStorage.setItem('hardModeUnlocked', hardModeUnlocked.toString());
+        console.log(`Hard mode ${hardModeUnlocked ? 'unlocked' : 'locked'}`);
+    },
+    setScore: function(newScore) {
+        score = newScore;
+        console.log(`Score set to ${newScore}`);
+    },
+    toggleDebugMode: function() {
+        window.debugMode = !window.debugMode;
+        console.log(`Debug mode ${window.debugMode ? 'enabled' : 'disabled'}`);
+    }
+};
