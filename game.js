@@ -117,8 +117,10 @@ let lastUpdateTime = 0;
 
 // Add these variables to your game state
 let lastFlapDirection = 0; // 0 for neutral, -1 for up, 1 for down
+let flapDownFrames = 0;
 let flapTransitionFrames = 0;
-const FLAP_TRANSITION_DURATION = 3; // Adjust this value to control how long the neutral image is shown
+const FLAP_DOWN_DURATION = 9; 
+const FLAP_TRANSITION_DURATION = 4; // Duration for transition to neutral
 
 function update() {
     if (!gameStarted) return;
@@ -136,26 +138,17 @@ function update() {
     }
 
     // Bird animation
-    if (bird.velocity < 0) {
-        if (lastFlapDirection !== -1) {
-            flapTransitionFrames = FLAP_TRANSITION_DURATION;
-            lastFlapDirection = -1;
-        }
-    } else if (bird.velocity > 0) {
-        if (lastFlapDirection !== 1) {
-            flapTransitionFrames = FLAP_TRANSITION_DURATION;
-            lastFlapDirection = 1;
-        }
-    }
-
-    if (flapTransitionFrames > 0) {
-        currentBirdImg = birdImg; // Neutral image during transition
+    if (flapDownFrames > 0) {
+        flapDownFrames--;
+        currentBirdImg = birdImgDown; // DOWN image when jump is pressed
+    } else if (flapTransitionFrames > 0) {
         flapTransitionFrames--;
+        currentBirdImg = birdImg; // Neutral image during transition
     } else {
-        if (lastFlapDirection === -1) {
-            currentBirdImg = birdImgDown; // Wings down when moving up
-        } else if (lastFlapDirection === 1) {
-            currentBirdImg = birdImgUp; // Wings up when moving down
+        if (bird.velocity >= 0) {
+            currentBirdImg = birdImgUp; // UP image when the bird is falling
+        } else {
+            currentBirdImg = birdImg; // Neutral image when moving upwards
         }
     }
 
@@ -392,8 +385,8 @@ function handleInput(event) {
         resetGame();
     } else {
         bird.velocity = bird.jump;
-        flapTransitionFrames = FLAP_TRANSITION_DURATION; // Reset transition frames on jump
-        lastFlapDirection = -1; // Set to up flap on jump
+        flapDownFrames = FLAP_DOWN_DURATION;
+        flapTransitionFrames = FLAP_TRANSITION_DURATION;
     }
 }
 
@@ -429,6 +422,7 @@ function resetGame() {
     pipeSpeed = INITIAL_PIPE_SPEED;
     testMode = false;
     lastFlapDirection = 0;
+    flapDownFrames = 0;
     flapTransitionFrames = 0;
     currentBirdImg = birdImg; // Start with neutral image
     lastPipeSpawnX = gameWidth;
