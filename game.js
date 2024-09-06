@@ -53,8 +53,9 @@ let lastPipeSpawnX = gameWidth;
 // Load pipe images
 const pipeImgs = [
     'pipe1.png',
-    'pipe2.png',
-    'pipe3.png'
+    //'pipe2.png',
+    //'pipe3.png',
+    'pipe4.png'
 ].map(src => {
     const img = new Image();
     img.src = src;
